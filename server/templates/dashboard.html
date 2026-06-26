@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoIP Toddler Mode Suite</title>
+    <!-- Modern Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-grad-start: #0f0c20;
+            --bg-grad-end: #06020c;
+            --panel-bg: rgba(255, 255, 255, 0.04);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --glow-color: rgba(99, 102, 241, 0.15);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --empty: #4b5563;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, var(--bg-grad-start), var(--bg-grad-end));
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        header {
+            border-bottom: 1px solid var(--panel-border);
+            background: rgba(15, 12, 32, 0.6);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.25rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            font-size: 2.2rem;
+            animation: bounce 3s infinite ease-in-out;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .logo-text h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #a5b4fc, #818cf8, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-text span {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* Server stats */
+        .system-stats {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        .stat-value.active {
+            color: var(--success);
+        }
+
+        .stat-value.inactive {
+            color: var(--danger);
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            flex-grow: 1;
+        }
+
+        @media (max-width: 1024px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panel Common Style */
+        .glass-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(99, 102, 241, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 16px 0 var(--glow-color);
+        }
+
+        .panel-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            border-left: 3px solid var(--accent);
+            padding-left: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Scan & Provision panel details */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--panel-border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .input-group label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .input-field {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 0.6rem 0.75rem;
+            color: white;
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent);
+        }
+
+        /* Device lists */
+        .device-list {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        .device-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--panel-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .device-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .device-item:last-child {
+            border-bottom: none;
+        }
+
+        .device-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .device-ip {
+            font-weight: 600;
+        }
+
+        .device-name {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .device-action-badge {
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+
+        .no-devices {
+            padding: 1.5rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Grid layouts */
+        .dashboard-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .section-header {
+            margin-bottom: 0.5rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.3rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+        }
+
+        .section-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* 12-Key Pad Layout */
+        .numeric-pad-container {
+            display: flex;
+            justify-content: center;
+            padding: 1rem 0;
+        }
+
+        .numeric-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 1.25rem;
+            background: rgba(0, 0, 0, 0.15);
+            padding: 1.5rem;
+            border-radius: 24px;
+            border: 1px solid var(--panel-border);
+        }
+
+        .keycard {
+            width: 100px;
+            height: 100px;
+            border-radius: 16px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+        }
+
+        .keycard:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .keycard.active {
+            border-color: var(--success);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+        }
+
+        .key-label {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .keycard.active .key-label {
+            color: #d1fae5;
+        }
+
+        .key-status {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--empty);
+        }
+
+        .keycard.active .key-status {
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        .key-filename {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            max-width: 90%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 0.25rem;
+        }
+
+        /* 14-Key Auxiliary Grid */
+        .auxiliary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            grid-gap: 1rem;
+        }
+
+        .aux-card {
+            border-radius: 12px;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .aux-card:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(99, 102, 241, 0.25);
+        }
+
+        .aux-card.active {
+            border-color: var(--success);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+        }
+
+        .aux-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .aux-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .aux-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--empty);
+        }
+
+        .aux-card.active .aux-status {
+            background: var(--success);
+            box-shadow: 0 0 6px var(--success);
+        }
+
+        .aux-details {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: auto;
+        }
+
+        .aux-card.cancel-btn {
+            border-left: 4px solid var(--danger);
+        }
+        .aux-card.confirm-btn {
+            border-left: 4px solid var(--success);
+        }
+
+        /* Hidden Uploader form inputs */
+        .hidden-file-input {
+            display: none;
+        }
+
+        /* Overlay modal for file operations */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+
+        .modal.open {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: #120e28;
+            border: 1px solid var(--panel-border);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 450px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            position: relative;
+            transform: scale(0.9);
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal.open .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        /* Uploader area */
+        .upload-area {
+            border: 2px dashed var(--panel-border);
+            border-radius: 12px;
+            padding: 2rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(0,0,0,0.15);
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            color: var(--accent);
+        }
+
+        .upload-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .upload-progress-container {
+            display: none;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar-bg {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .progress-text {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Toast system */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 2000;
+        }
+
+        .toast {
+            background: rgba(18, 15, 38, 0.9);
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            min-width: 300px;
+            max-width: 400px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            transform: translateX(120%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .toast.info {
+            border-left: 4px solid var(--accent);
+        }
+
+        .toast-icon {
+            font-size: 1.2rem;
+        }
+
+        .toast-message {
+            flex-grow: 1;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        /* Spinner */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Provision overlay inside modal */
+        .provision-dialog {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-container">
+            <div class="logo-group">
+                <div class="logo-icon">🧸</div>
+                <div class="logo-text">
+                    <h1>Toddler Mode Suite</h1>
+                    <span>FreePBX Automation & Toy Console</span>
+                </div>
+            </div>
+            
+            <div class="system-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Local IP</span>
+                    <span class="stat-value" id="stat-ip">---</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">CPU Usage</span>
+                    <span class="stat-value" id="stat-cpu">-%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">RAM Usage</span>
+                    <span class="stat-value" id="stat-ram">-%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Sounds Disk</span>
+                    <span class="stat-value" id="stat-disk">-%</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Asterisk</span>
+                    <span class="stat-value" id="stat-asterisk">---</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Left Column: Controls & LAN scan -->
+        <aside style="display: flex; flex-direction: column; gap: 2rem;">
+            <div class="glass-panel">
+                <div class="panel-title">
+                    <span>1. Extension Setup</span>
+                    <span>🛠️</span>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">
+                    Configure extension 100 inside FreePBX automatically. This sets up SIP user 100 with standard password credentials.
+                </p>
+                <button class="btn" id="btn-provision-ext" onclick="provisionExtension()">
+                    Generate extension 100
+                </button>
+            </div>
+
+            <div class="glass-panel">
+                <div class="panel-title">
+                    <span>2. Snom Device Discovery</span>
+                    <span>🔍</span>
+                </div>
+                <div class="control-group">
+                    <button class="btn" id="btn-scan" onclick="scanNetwork()">
+                        Scan LAN for Phones
+                    </button>
+                    <div style="display: flex; justify-content: flex-end;">
+                        <label style="font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                            <input type="checkbox" id="mock-check" checked style="accent-color: var(--accent);"> Include Simulator Phones
+                        </label>
+                    </div>
+                </div>
+
+                <div class="device-list" id="device-list-container">
+                    <div class="no-devices" id="no-devices-msg">No scans performed yet. Click Scan LAN to discover Snom 320s.</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Column: Interactive grids -->
+        <section class="dashboard-content">
+            <!-- Numeric keypad mapping -->
+            <div>
+                <div class="section-header">
+                    <h2>Numeric Keypad Sounds</h2>
+                    <p>Map audio files played when the toddler presses standard keypads (0-9, *, #) during call.</p>
+                </div>
+                
+                <div class="numeric-pad-container">
+                    <div class="numeric-pad" id="numeric-pad-grid">
+                        <!-- Keycards will be dynamically built here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side and context keys -->
+            <div>
+                <div class="section-header">
+                    <h2>Auxiliary & Context Keys</h2>
+                    <p>Remap the 12 right-side paper speed-dials, plus the Cancel (X) and Confirm (✔) keys.</p>
+                </div>
+                <div class="auxiliary-grid" id="auxiliary-grid-container" style="margin-top: 1rem;">
+                    <!-- Auxiliary cards built here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal dialogue for file upload / action selection -->
+    <div class="modal" id="key-modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <div class="modal-title" id="modal-key-title">Configure Key</div>
+            
+            <div id="modal-view-state" style="display: none; flex-direction: column; gap: 1rem;">
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--panel-border); padding: 1rem; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+                        <span style="font-size: 0.75rem; color: var(--text-secondary);">Active Sound File:</span>
+                        <span id="modal-active-filename" style="font-weight: 600; font-size: 0.9rem;">sound.wav</span>
+                    </div>
+                    <button class="btn btn-secondary" style="color: var(--danger); padding: 0.4rem 0.8rem; font-size: 0.8rem; border-color: rgba(239, 68, 68, 0.2);" onclick="deleteSound()">Delete</button>
+                </div>
+                <div style="text-align: center; color: var(--text-secondary); font-size: 0.8rem;">- OR -</div>
+            </div>
+
+            <div class="upload-area" id="drop-zone" onclick="triggerFileInput()">
+                <div class="upload-icon">📤</div>
+                <div class="upload-text">Drag & drop sound file here or click to browse</div>
+                <div style="font-size: 0.7rem; color: var(--text-secondary);">Supports MP3, WAV, M4A, OGG</div>
+            </div>
+            
+            <input type="file" id="file-uploader-input" class="hidden-file-input" accept="audio/*" onchange="handleFileSelect(event)">
+            
+            <div class="upload-progress-container" id="upload-progress-box">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar" id="upload-progress-indicator"></div>
+                </div>
+                <div class="progress-text">
+                    <span id="upload-status-text">Uploading...</span>
+                    <span id="upload-percentage">0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal dialogue for provisioning form -->
+    <div class="modal" id="provision-modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeProvisionModal()">&times;</button>
+            <div class="modal-title">Provision Snom 320</div>
+            
+            <div class="provision-dialog">
+                <div class="input-group">
+                    <label>Target IP Address</label>
+                    <input type="text" class="input-field" id="prov-ip" readonly>
+                </div>
+                <div class="input-group">
+                    <label>Snom Admin Username</label>
+                    <input type="text" class="input-field" id="prov-user" value="admin">
+                </div>
+                <div class="input-group">
+                    <label>Snom Admin Password</label>
+                    <input type="password" class="input-field" id="prov-pass" value="admin">
+                </div>
+                
+                <button class="btn" id="btn-execute-prov" onclick="executeProvisioning()">
+                    Push Config & Reboot Phone
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toast-box"></div>
+
+    <script>
+        // State variables
+        let soundConfig = {};
+        let selectedKey = null;
+
+        // Initialize lists
+        const numericKeys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
+        
+        // Define auxiliary keys map with user-friendly labels
+        const auxKeyConfig = {
+            "701": "Side Key 1",
+            "702": "Side Key 2",
+            "703": "Side Key 3",
+            "704": "Side Key 4",
+            "705": "Side Key 5",
+            "706": "Side Key 6",
+            "707": "Side Key 7",
+            "708": "Side Key 8",
+            "709": "Side Key 9",
+            "710": "Side Key 10",
+            "711": "Side Key 11",
+            "712": "Side Key 12",
+            "713": "Cancel Button (X)",
+            "714": "Confirm Button (✔)",
+            "715": "Redial Button 🔄",
+            "716": "Directory Button 📖",
+            "717": "Mute Button 🔇",
+            "718": "DND Button 🌙",
+            "719": "Menu Button ⚙️",
+            "720": "Hold Button ⏸️",
+            "721": "Transfer Button ➡️",
+            "722": "Message Button ✉️",
+            "723": "Help Button ❓",
+            "724": "Speakerphone Key 🔊",
+            "725": "Up Arrow 🔺",
+            "726": "Down Arrow 🔻",
+            "727": "Left Arrow ◀️",
+            "728": "Right Arrow ▶️"
+        };
+
+        // Load stats and sound lists on startup
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchStats();
+            fetchSounds();
+            buildGrids();
+            
+            // Auto refresh stats every 10 seconds
+            setInterval(fetchStats, 10000);
+        });
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-box');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            let icon = 'ℹ️';
+            if (type === 'success') icon = '✅';
+            if (type === 'error') icon = '❌';
+            
+            toast.innerHTML = `
+                <span class="toast-icon">${icon}</span>
+                <div class="toast-message">${message}</div>
+                <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Trigger animation
+            setTimeout(() => toast.classList.add('show'), 50);
+            
+            // Auto dismiss
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function fetchStats() {
+            fetch('/api/stats')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('stat-ip').innerText = data.local_ip;
+                    document.getElementById('stat-cpu').innerText = `${Math.round(data.cpu_percent)}%`;
+                    document.getElementById('stat-ram').innerText = `${Math.round(data.ram_percent)}%`;
+                    document.getElementById('stat-disk').innerText = `${data.disk_used_percent}% (${data.disk_free_gb} GB free)`;
+                    
+                    const astEl = document.getElementById('stat-asterisk');
+                    if (data.asterisk_running) {
+                        astEl.innerText = 'Online';
+                        astEl.className = 'stat-value active';
+                    } else {
+                        astEl.innerText = 'Offline';
+                        astEl.className = 'stat-value inactive';
+                    }
+                })
+                .catch(() => {
+                    console.error("Failed fetching stats");
+                });
+        }
+
+        function fetchSounds() {
+            fetch('/api/sounds')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        soundConfig = data.sounds;
+                        updateGridStates();
+                    }
+                });
+        }
+
+        function buildGrids() {
+            // Build 12-key numeric keypad
+            const numPadGrid = document.getElementById('numeric-pad-grid');
+            numPadGrid.innerHTML = '';
+            
+            numericKeys.forEach(key => {
+                const card = document.createElement('div');
+                card.className = 'keycard';
+                card.id = `key-${key}`;
+                card.onclick = () => openKeyModal(key);
+                card.innerHTML = `
+                    <div class="key-status"></div>
+                    <div class="key-label">${key}</div>
+                    <div class="key-filename" id="filename-${key}"></div>
+                `;
+                numPadGrid.appendChild(card);
+            });
+
+            // Build auxiliary grid
+            const auxGrid = document.getElementById('auxiliary-grid-container');
+            auxGrid.innerHTML = '';
+            
+            Object.keys(auxKeyConfig).forEach(key => {
+                const label = auxKeyConfig[key];
+                const card = document.createElement('div');
+                
+                let extraClass = '';
+                if (key === '713') extraClass = ' cancel-btn';
+                if (key === '714') extraClass = ' confirm-btn';
+                
+                card.className = `aux-card${extraClass}`;
+                card.id = `key-${key}`;
+                card.onclick = () => openKeyModal(key);
+                card.innerHTML = `
+                    <div class="aux-header">
+                        <span class="aux-label">${label}</span>
+                        <div class="aux-status"></div>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Dial Code: ${key}</div>
+                    <div class="aux-details" id="filename-${key}">Empty Slot</div>
+                `;
+                auxGrid.appendChild(card);
+            });
+        }
+
+        function updateGridStates() {
+            Object.keys(soundConfig).forEach(key => {
+                const isMapped = soundConfig[key].mapped;
+                const card = document.getElementById(`key-${key}`);
+                const fileLabel = document.getElementById(`filename-${key}`);
+                
+                if (card) {
+                    if (isMapped) {
+                        card.classList.add('active');
+                    } else {
+                        card.classList.remove('active');
+                    }
+                }
+                
+                if (fileLabel) {
+                    if (isMapped) {
+                        // Truncate filename nicely if it's long
+                        fileLabel.innerText = soundConfig[key].filename;
+                        fileLabel.style.color = '#34d399';
+                    } else {
+                        fileLabel.innerText = key.length > 2 ? 'Empty Slot' : '';
+                        fileLabel.style.color = '';
+                    }
+                }
+            });
+        }
+
+        // Provisioning APIs
+        function provisionExtension() {
+            const btn = document.getElementById('btn-provision-ext');
+            btn.disabled = true;
+            btn.innerHTML = `<div class="spinner"></div> Creating extension...`;
+            
+            fetch('/api/provision-extension', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    btn.disabled = false;
+                    btn.innerText = 'Generate extension 100';
+                    if (data.success) {
+                        showToast(data.message, 'success');
+                    } else {
+                        showToast(data.error, 'error');
+                    }
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    btn.innerText = 'Generate extension 100';
+                    showToast('Failed to connect to backend api.', 'error');
+                });
+        }
+
+        function scanNetwork() {
+            const btn = document.getElementById('btn-scan');
+            const mock = document.getElementById('mock-check').checked;
+            btn.disabled = true;
+            btn.innerHTML = `<div class="spinner"></div> Scanning subnet...`;
+            
+            const container = document.getElementById('device-list-container');
+            container.innerHTML = `<div class="no-devices">Scanning local subnet... Please wait.</div>`;
+            
+            fetch(`/api/scan?mock=${mock}`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    btn.disabled = false;
+                    btn.innerText = 'Scan LAN for Phones';
+                    
+                    if (!data.success) {
+                        showToast(data.error, 'error');
+                        container.innerHTML = `<div class="no-devices">${data.error}</div>`;
+                        return;
+                    }
+                    
+                    container.innerHTML = '';
+                    
+                    if (data.devices.length === 0) {
+                        container.innerHTML = `<div class="no-devices">No active Snom devices found on subnet ${data.subnet}.</div>`;
+                        showToast('Subnet scan completed. No devices found.', 'info');
+                    } else {
+                        data.devices.forEach(dev => {
+                            const el = document.createElement('div');
+                            el.className = 'device-item';
+                            el.onclick = () => openProvisionModal(dev.ip);
+                            el.innerHTML = `
+                                <div class="device-info">
+                                    <span class="device-ip">${dev.ip}</span>
+                                    <span class="device-name">${dev.details}</span>
+                                </div>
+                                <span class="device-action-badge">Provision</span>
+                            `;
+                            container.appendChild(el);
+                        });
+                        showToast(`Scan complete! Found ${data.devices.length} device(s).`, 'success');
+                    }
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    btn.innerText = 'Scan LAN for Phones';
+                    container.innerHTML = `<div class="no-devices">Network error occurred during scanning.</div>`;
+                    showToast('Network request failed.', 'error');
+                });
+        }
+
+        // Key Modals Configuration
+        function openKeyModal(key) {
+            selectedKey = key;
+            const modal = document.getElementById('key-modal');
+            const title = document.getElementById('modal-key-title');
+            const viewState = document.getElementById('modal-view-state');
+            const activeFileLabel = document.getElementById('modal-active-filename');
+            
+            // Set Modal Title
+            let friendlyName = `Keypad '${key}'`;
+            if (auxKeyConfig[key]) {
+                friendlyName = `${auxKeyConfig[key]} (Dial code ${key})`;
+            }
+            title.innerText = `Configure Sound for ${friendlyName}`;
+            
+            // Reset Progress bar
+            document.getElementById('upload-progress-box').style.display = 'none';
+            document.getElementById('upload-progress-indicator').style.width = '0%';
+            
+            // Render mapped sound file if existing
+            if (soundConfig[key] && soundConfig[key].mapped) {
+                activeFileLabel.innerText = soundConfig[key].filename;
+                viewState.style.display = 'flex';
+            } else {
+                viewState.style.display = 'none';
+            }
+            
+            modal.classList.add('open');
+            setupDragAndDrop();
+        }
+
+        function closeModal() {
+            document.getElementById('key-modal').classList.remove('open');
+            selectedKey = null;
+        }
+
+        // Provision Modals Configuration
+        function openProvisionModal(ip) {
+            document.getElementById('prov-ip').value = ip;
+            document.getElementById('provision-modal').classList.add('open');
+        }
+
+        function closeProvisionModal() {
+            document.getElementById('provision-modal').classList.remove('open');
+        }
+
+        function executeProvisioning() {
+            const ip = document.getElementById('prov-ip').value;
+            const user = document.getElementById('prov-user').value;
+            const pass = document.getElementById('prov-pass').value;
+            
+            const btn = document.getElementById('btn-execute-prov');
+            btn.disabled = true;
+            btn.innerHTML = `<div class="spinner"></div> Provisioning Snom...`;
+            
+            fetch('/api/provision-phone', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ip: ip, username: user, password: pass })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerText = 'Push Config & Reboot Phone';
+                
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    closeProvisionModal();
+                } else {
+                    showToast(data.error, 'error');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerText = 'Push Config & Reboot Phone';
+                showToast('Failed to connect to phone provisioning API.', 'error');
+            });
+        }
+
+        // Sound Deletion
+        function deleteSound() {
+            if (!selectedKey) return;
+            
+            if (confirm(`Are you sure you want to remove the sound for key ${selectedKey}?`)) {
+                fetch(`/api/sounds/delete/${selectedKey}`, { method: 'DELETE' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast(data.message, 'success');
+                            fetchSounds();
+                            closeModal();
+                        } else {
+                            showToast(data.error, 'error');
+                        }
+                    })
+                    .catch(() => {
+                        showToast('Failed to remove sound mapping.', 'error');
+                    });
+            }
+        }
+
+        // File Uploader Handler
+        function triggerFileInput() {
+            document.getElementById('file-uploader-input').click();
+        }
+
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                uploadFile(files[0]);
+            }
+        }
+
+        function setupDragAndDrop() {
+            const zone = document.getElementById('drop-zone');
+            
+            // Remove previous listeners if any to avoid duplication
+            const newZone = zone.cloneNode(true);
+            zone.parentNode.replaceChild(newZone, zone);
+            
+            newZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                newZone.classList.add('dragover');
+            });
+            
+            newZone.addEventListener('dragleave', () => {
+                newZone.classList.remove('dragover');
+            });
+            
+            newZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                newZone.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    uploadFile(files[0]);
+                }
+            });
+            
+            newZone.onclick = triggerFileInput;
+        }
+
+        function uploadFile(file) {
+            if (!selectedKey) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('key', selectedKey);
+            
+            const progressBox = document.getElementById('upload-progress-box');
+            const progressIndicator = document.getElementById('upload-progress-indicator');
+            const statusText = document.getElementById('upload-status-text');
+            const percentText = document.getElementById('upload-percentage');
+            
+            progressBox.style.display = 'flex';
+            statusText.innerText = 'Processing file...';
+            progressIndicator.style.width = '0%';
+            percentText.innerText = '0%';
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/sounds/upload', true);
+            
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    // Caps at 95% because Sox conversion takes extra execution time on backend
+                    const displayPercent = Math.min(percent, 95);
+                    progressIndicator.style.width = `${displayPercent}%`;
+                    percentText.innerText = `${displayPercent}%`;
+                    if (percent === 100) {
+                        statusText.innerText = 'Converting audio down to 8kHz mono...';
+                    }
+                }
+            };
+            
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    const res = JSON.parse(xhr.responseText);
+                    if (res.success) {
+                        progressIndicator.style.width = '100%';
+                        percentText.innerText = '100%';
+                        statusText.innerText = 'Success!';
+                        showToast(res.message, 'success');
+                        
+                        setTimeout(() => {
+                            fetchSounds();
+                            closeModal();
+                        }, 500);
+                    } else {
+                        showToast(res.error, 'error');
+                        progressBox.style.display = 'none';
+                    }
+                } else {
+                    let err = 'Upload failed';
+                    try {
+                        err = JSON.parse(xhr.responseText).error || err;
+                    } catch(e){}
+                    showToast(err, 'error');
+                    progressBox.style.display = 'none';
+                }
+            };
+            
+            xhr.onerror = () => {
+                showToast('A network connection error occurred.', 'error');
+                progressBox.style.display = 'none';
+            };
+            
+            xhr.send(formData);
+        }
+    </script>
+</body>
+</html>
