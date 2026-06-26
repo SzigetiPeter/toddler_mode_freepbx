@@ -21,8 +21,15 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-echo -e "Target Application Directory: ${GREEN}${APP_DIR}${NC}"
+CLONE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_DIR="/var/lib/toddler-mode"
+echo -e "Clone Directory: ${GREEN}${CLONE_DIR}${NC}"
+echo -e "Installation target: ${GREEN}${INSTALL_DIR}${NC}"
+
+# Copy codebase to target install directory
+mkdir -p "${INSTALL_DIR}"
+cp -r "${CLONE_DIR}/server" "${INSTALL_DIR}/"
+cp -r "${CLONE_DIR}/config" "${INSTALL_DIR}/"
 
 # 2. Install system-level dependencies
 echo -e "\n${BLUE}[1/6] Installing system-level dependencies...${NC}"
@@ -36,7 +43,7 @@ mkdir -p "${SOUNDS_DIR}"
 
 # 4. Inject custom Asterisk dialplan loops
 echo -e "\n${BLUE}[3/6] Configuring Asterisk Dialplan...${NC}"
-DIALPLAN_SRC="${APP_DIR}/config/asterisk_toddler.conf"
+DIALPLAN_SRC="${INSTALL_DIR}/config/asterisk_toddler.conf"
 DIALPLAN_DEST="/etc/asterisk/asterisk_toddler.conf"
 EXT_CUSTOM="/etc/asterisk/extensions_custom.conf"
 
@@ -69,15 +76,15 @@ fi
 
 # 5. Set up Python virtual environment & dependencies
 echo -e "\n${BLUE}[4/6] Setting up Python virtual environment...${NC}"
-VENV_DIR="${APP_DIR}/venv"
+VENV_DIR="${INSTALL_DIR}/venv"
 python3 -m venv "${VENV_DIR}"
 "${VENV_DIR}/bin/pip" install --upgrade pip
-"${VENV_DIR}/bin/pip" install -r "${APP_DIR}/server/requirements.txt"
+"${VENV_DIR}/bin/pip" install -r "${INSTALL_DIR}/server/requirements.txt"
 
 # 6. Apply recursive ownership of directory files
 echo -e "\n${BLUE}[5/6] Adjusting file ownership permissions...${NC}"
 chown -R asterisk:asterisk "${SOUNDS_DIR}"
-chown -R asterisk:asterisk "${APP_DIR}"
+chown -R asterisk:asterisk "${INSTALL_DIR}"
 # Ensure the virtual env can be run by asterisk user
 chmod -R 755 "${VENV_DIR}"
 
@@ -95,8 +102,8 @@ Wants=asterisk.service
 Type=simple
 User=asterisk
 Group=asterisk
-WorkingDirectory=${APP_DIR}/server
-ExecStart=${APP_DIR}/venv/bin/python app.py
+WorkingDirectory=${INSTALL_DIR}/server
+ExecStart=${INSTALL_DIR}/venv/bin/python app.py
 Restart=always
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1
@@ -126,4 +133,3 @@ if command -v asterisk &> /dev/null; then
 else
     echo -e "${YELLOW}Notice: 'asterisk' command not found. Dialplan will reload once Asterisk restarts.${NC}"
 fi
-EOF
