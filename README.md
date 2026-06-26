@@ -32,18 +32,10 @@ voip-toddler-mode/
 
 ## 🚀 Quickstart Installation
 
-Run this directly inside your Debian FreePBX Proxmox LXC container via SSH:
+Run this single command directly inside your Debian FreePBX Proxmox LXC container via SSH:
 
-### 1. Clone the Repository
 ```bash
-git clone https://github.com/SzigetiPeter/toddler_mode_freepbx.git voip-toddler-mode
-cd voip-toddler-mode
-```
-
-### 2. Run the Deployment Script
-```bash
-chmod +x install.sh
-sudo ./install.sh
+git clone http://github.com/SzigetiPeter/toddler_mode_freepbx tm && cd tm && sudo bash install.sh
 ```
 
 The script will:
