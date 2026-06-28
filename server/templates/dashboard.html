@@ -736,10 +736,10 @@
                     <span>🛠️</span>
                 </div>
                 <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">
-                    Configure extension 100 inside FreePBX automatically. This sets up SIP user 100 with standard password credentials.
+                    Once you have created PJSIP Extension 100 in the FreePBX GUI, click below to link it with our secure passwords, hotline keys, and configurations.
                 </p>
                 <button class="btn" id="btn-provision-ext" onclick="provisionExtension()">
-                    Generate extension 100
+                    Register Extension 100
                 </button>
             </div>
 
@@ -1083,7 +1083,7 @@
                 .then(res => res.json())
                 .then(data => {
                     btn.disabled = false;
-                    btn.innerText = 'Generate extension 100';
+                    btn.innerText = 'Register Extension 100';
                     if (data.success) {
                         showToast(data.message, 'success');
                         fetchStats(); // Update dashboard panels immediately
@@ -1093,7 +1093,7 @@
                 })
                 .catch(err => {
                     btn.disabled = false;
-                    btn.innerText = 'Generate extension 100';
+                    btn.innerText = 'Register Extension 100';
                     showToast('Failed to connect to backend api.', 'error');
                 });
         }

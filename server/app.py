@@ -228,6 +228,14 @@ def provision_extension():
             "error": "fwconsole utility not found. Extension generation is only supported directly on a FreePBX server."
         }), 500
 
+    # Verify if Extension 100 is created in FreePBX first (must exist in devices table)
+    code_check, out_check, _ = run_db_query("SELECT id FROM devices WHERE id = '100' LIMIT 1")
+    if code_check != 0 or not out_check or '100' not in out_check:
+        return jsonify({
+            "success": False,
+            "error": "Extension 100 does not exist in FreePBX. Please open the FreePBX Web Admin, go to Applications -> Extensions, add a new PJSIP Extension with number '100', click 'Apply Config', then click this button again."
+        }), 400
+
     # PJSIP Insert commands
     q1 = "INSERT INTO pjsip (id, keyword, data) VALUES ('100', 'secret', 'ToddlerToyPass123') ON DUPLICATE KEY UPDATE data='ToddlerToyPass123'"
     q2 = "INSERT INTO pjsip (id, keyword, data) VALUES ('100', 'max_contacts', '1') ON DUPLICATE KEY UPDATE data='1'"
