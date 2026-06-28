@@ -735,7 +735,7 @@
                     <span>1. Extension Setup</span>
                     <span>🛠️</span>
                 </div>
-                <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4;">
+                <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">
                     Configure extension 100 inside FreePBX automatically. This sets up SIP user 100 with standard password credentials.
                 </p>
                 <button class="btn" id="btn-provision-ext" onclick="provisionExtension()">
@@ -747,12 +747,10 @@
                 <div class="panel-title">
                     <span>2. Snom Device Discovery</span>
                     <span>🔍</span>
-                            <div class="control-group" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                </div>
+                <div class="control-group" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">
                     <button class="btn" id="btn-scan" onclick="scanNetwork()">
                         Scan LAN for Phones
-                    </button>
-                    <button class="btn btn-secondary" onclick="openProvisionModal('')" style="width: 100%;">
-                        Manually Enter Phone IP
                     </button>
                     <div style="display: flex; justify-content: flex-end;">
                         <label style="font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
@@ -761,9 +759,22 @@
                     </div>
                 </div>
 
-                <div class="device-list" id="device-list-container" style="margin-top: 1rem;">
+                <div class="device-list" id="device-list-container">
                     <div class="no-devices" id="no-devices-msg">No scans performed yet. Click Scan LAN to discover Snom 320s.</div>
                 </div>
+            </div>
+
+            <div class="glass-panel">
+                <div class="panel-title">
+                    <span>3. Manual Provisioning</span>
+                    <span>⌨️</span>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">
+                    If the scanner cannot find your phone (e.g. because of network firewalls or HTTPS settings), enter its IP manually to push settings.
+                </p>
+                <button class="btn btn-secondary" onclick="openProvisionModal('')" style="width: 100%;">
+                    Manually Enter Phone IP
+                </button>
             </div>
         </aside>
 

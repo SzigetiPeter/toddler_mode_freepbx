@@ -149,51 +149,18 @@ def scan_lan():
         "devices": sorted(detected_devices, key=lambda x: [int(y) for y in x["ip"].split('.')])
     })
 
-def get_freepbx_db_credentials():
-    """Parses /etc/freepbx.conf to extract database credentials."""
-    creds = {
-        "user": "freepbxuser",
-        "pass": "",
-        "host": "localhost",
-        "name": "asterisk"
-    }
-    config_path = "/etc/freepbx.conf"
-    if not os.path.exists(config_path):
-        return creds
-    try:
-        with open(config_path, "r") as f:
-            content = f.read()
-            
-        user_match = re.search(r"AMPDBUSER['\"]?\s*\]\s*=\s*['\"](.*?)['\"]", content)
-        pass_match = re.search(r"AMPDBPASS['\"]?\s*\]\s*=\s*['\"](.*?)['\"]", content)
-        host_match = re.search(r"AMPDBHOST['\"]?\s*\]\s*=\s*['\"](.*?)['\"]", content)
-        name_match = re.search(r"AMPDBNAME['\"]?\s*\]\s*=\s*['\"](.*?)['\"]", content)
-        
-        if user_match:
-            creds["user"] = user_match.group(1)
-        if pass_match:
-            creds["pass"] = pass_match.group(1)
-        if host_match:
-            creds["host"] = host_match.group(1)
-        if name_match:
-            creds["name"] = name_match.group(1)
-            
-    except Exception as e:
-        logger.error(f"Error parsing /etc/freepbx.conf: {e}")
-    return creds
-
 def run_db_query(query):
-    """Runs an SQL query against the local Asterisk MariaDB database."""
-    creds = get_freepbx_db_credentials()
-    mysql_path = shutil.which("mysql")
-    if not mysql_path:
-        return -1, "", "mysql binary not found in system PATH"
+    """Runs an SQL query against the local Asterisk MariaDB database by piping it to fwconsole mysql."""
+    fwconsole_path = shutil.which("fwconsole")
+    if not fwconsole_path:
+        return -1, "", "fwconsole utility not found"
         
-    args = [mysql_path, "-h", creds["host"], "-u", creds["user"]]
-    if creds["pass"]:
-        args.append(f"-p{creds['pass']}")
-    args.extend([creds["name"], "-e", query])
-    return run_cmd(args)
+    try:
+        # Pass the query via stdin to 'fwconsole mysql'
+        res = subprocess.run([fwconsole_path, "mysql"], input=query, capture_output=True, text=True, timeout=15)
+        return res.returncode, res.stdout.strip(), res.stderr.strip()
+    except Exception as e:
+        return -1, "", str(e)
 
 @app.route('/api/provision-extension', methods=['POST'])
 def provision_extension():
@@ -219,9 +186,9 @@ def provision_extension():
     if code2 != 0:
         return jsonify({"success": False, "error": f"Failed inserting max_contacts: {err2 or out2}"}), 500
         
-    code3, out3, err3 = run_cmd([fwconsole_path, "dialplan", "reload"])
+    code3, out3, err3 = run_cmd([fwconsole_path, "reload"])
     if code3 != 0:
-        return jsonify({"success": False, "error": f"Failed reloading dialplan: {err3 or out3}"}), 500
+        return jsonify({"success": False, "error": f"Failed reloading FreePBX: {err3 or out3}"}), 500
 
     return jsonify({"success": True, "message": "Extension 100 provisioned and dialplan reloaded successfully!"})
 
