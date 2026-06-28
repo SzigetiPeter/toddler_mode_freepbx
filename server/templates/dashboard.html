@@ -738,14 +738,9 @@
                 <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">
                     Click below to automatically create PJSIP Extension 100 in the FreePBX database, secure its credentials, and route calls directly to the toddler game sandbox.
                 </p>
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <button class="btn" id="btn-provision-ext" onclick="provisionExtension()" style="width: 100%;">
-                        Create Extension 100
-                    </button>
-                    <button class="btn btn-secondary" id="btn-clean-ext" onclick="cleanExtension()" style="width: 100%; font-size: 0.75rem; border-color: rgba(239, 68, 68, 0.4); color: #f87171;">
-                        🧹 Purge Orphan Traces
-                    </button>
-                </div>
+                <button class="btn" id="btn-provision-ext" onclick="provisionExtension()" style="width: 100%;">
+                    Create Extension 100
+                </button>
             </div>
 
             <div class="glass-panel" id="panel-device-discovery" style="display: none;">
@@ -779,6 +774,19 @@
                 </p>
                 <button class="btn btn-secondary" onclick="openProvisionModal('')" style="width: 100%;">
                     Manually Enter Phone IP
+                </button>
+            </div>
+
+            <div class="glass-panel" id="panel-troubleshooting">
+                <div class="panel-title">
+                    <span>Troubleshooting</span>
+                    <span>🔧</span>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">
+                    Having database issues, phone registration errors, or duplicate entries? Purge all extension 100 database traces to reset the slate.
+                </p>
+                <button class="btn btn-secondary" id="btn-clean-ext" onclick="cleanExtension()" style="width: 100%; font-size: 0.75rem; border-color: rgba(239, 68, 68, 0.4); color: #f87171;">
+                    🧹 Purge Extension Traces & Reload
                 </button>
             </div>
         </aside>
@@ -979,12 +987,18 @@
                     const manPanel = document.getElementById('panel-manual-provisioning');
 
                     if (extPanel && discPanel && manPanel) {
+                        extPanel.style.display = 'block';
+                        const btnProvisionExt = document.getElementById('btn-provision-ext');
                         if (data.extension_provisioned) {
-                            extPanel.style.display = 'none';
+                            if (btnProvisionExt && !btnProvisionExt.innerHTML.includes('spinner')) {
+                                btnProvisionExt.innerText = 'Recreate Extension 100';
+                            }
                             discPanel.style.display = 'block';
                             manPanel.style.display = 'block';
                         } else {
-                            extPanel.style.display = 'block';
+                            if (btnProvisionExt && !btnProvisionExt.innerHTML.includes('spinner')) {
+                                btnProvisionExt.innerText = 'Create Extension 100';
+                            }
                             discPanel.style.display = 'none';
                             manPanel.style.display = 'none';
                         }
