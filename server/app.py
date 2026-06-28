@@ -346,14 +346,8 @@ def provision_phone():
         "user_registrar1": local_ip,
         
         # Hotline Configuration (dial '700' immediately on offhook)
-        "hotline_active": "on",
-        "hotline_active1": "on",
-        "hotline_number": "700",
-        "hotline_number1": "700",
-        "call_settings.hotline_number": "700",
-        "hotline_delay": "0",
-        "hotline_delay1": "0",
-        "call_settings.hotline_delay": "0",
+        "auto_dial": "1",
+        "auto_dial_target": "700",
         
         # Bypass confirmation popups
         "confirm_fkey_call": "off",
