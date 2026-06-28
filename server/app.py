@@ -356,30 +356,30 @@ def provision_phone():
         "call_settings.hotline_delay": "0",
         
         # Context Keys (Cancel and Confirm)
-        "key_setup_cancel": "speed 713",
-        "key_setup_confirm": "speed 714",
+        "key_setup_cancel": "dtmf 713",
+        "key_setup_confirm": "dtmf 714",
 
         # Hardkey Speed Dial Remappings
-        "key_redial": "speed 715",
-        "key_directory": "speed 716",
-        "key_mute": "speed 717",
-        "key_dnd": "speed 718",
-        "key_menu": "speed 719",
-        "key_hold": "speed 720",
-        "key_transfer": "speed 721",
-        "key_message": "speed 722",
-        "key_help": "speed 723",
-        "key_speaker": "speed 724",
-        "key_up": "speed 725",
-        "key_down": "speed 726",
-        "key_left": "speed 727",
-        "key_right": "speed 728",
+        "key_redial": "dtmf 715",
+        "key_directory": "dtmf 716",
+        "key_mute": "dtmf 717",
+        "key_dnd": "dtmf 718",
+        "key_menu": "dtmf 719",
+        "key_hold": "dtmf 720",
+        "key_transfer": "dtmf 721",
+        "key_message": "dtmf 722",
+        "key_help": "dtmf 723",
+        "key_speaker": "dtmf 724",
+        "key_up": "dtmf 725",
+        "key_down": "dtmf 726",
+        "key_left": "dtmf 727",
+        "key_right": "dtmf 728",
     }
     
-    # 12 Side Keys speed dials (fkey0 - fkey11 -> speed 701 - 712)
+    # 12 Side Keys speed dials (fkey0 - fkey11 -> dtmf 701 - 712)
     for i in range(12):
-        params[f"fkey{i}"] = f"speed 701" if i == 0 else f"speed {701 + i}"
-        params[f"fkey_type{i}"] = "speed"
+        params[f"fkey{i}"] = f"dtmf {701 + i}"
+        params[f"fkey_type{i}"] = "dtmf"
         params[f"fkey_value{i}"] = str(701 + i)
 
     # 2. Push configurations to Snom
