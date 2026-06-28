@@ -682,11 +682,114 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Provision overlay inside modal */
-        .provision-dialog {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                gap: 1.25rem;
+                padding: 1.25rem 1rem;
+                text-align: center;
+            }
+
+            .logo-group {
+                justify-content: center;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .logo-text h1 {
+                font-size: 1.35rem;
+            }
+
+            .system-stats {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.75rem 0.5rem;
+                width: 100%;
+            }
+
+            .stat-item {
+                align-items: center;
+                background: rgba(255, 255, 255, 0.02);
+                padding: 0.4rem;
+                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.04);
+            }
+
+            .stat-label {
+                font-size: 0.6rem;
+            }
+
+            .stat-value {
+                font-size: 0.8rem;
+            }
+
+            main {
+                margin: 1rem auto;
+                padding: 0 1rem;
+                gap: 1.5rem;
+            }
+
+            .glass-panel {
+                padding: 1.25rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .system-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .numeric-pad {
+                grid-template-columns: repeat(3, 80px);
+                grid-gap: 0.75rem;
+                padding: 1rem;
+                border-radius: 18px;
+            }
+
+            .keycard {
+                width: 80px;
+                height: 80px;
+                border-radius: 12px;
+            }
+
+            .key-label {
+                font-size: 1.4rem;
+            }
+
+            .key-filename {
+                font-size: 0.6rem;
+            }
+
+            .auxiliary-grid {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                grid-gap: 0.75rem;
+            }
+
+            .aux-card {
+                padding: 0.75rem;
+            }
+
+            .aux-label {
+                font-size: 0.8rem;
+            }
+
+            .modal-content {
+                padding: 1.25rem;
+                border-radius: 16px;
+            }
+
+            .toast-container {
+                bottom: 1rem;
+                right: 1rem;
+                left: 1rem;
+                align-items: center;
+            }
+
+            .toast {
+                min-width: unset;
+                width: 100%;
+            }
         }
     </style>
 </head>
