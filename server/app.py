@@ -239,7 +239,7 @@ def provision_extension():
         "INSERT INTO devices (id, tech, dial, devicetype, user, description) VALUES ('100', 'pjsip', 'PJSIP/100', 'fixed', '100', 'Toddler Phone') ON DUPLICATE KEY UPDATE tech='pjsip', dial='PJSIP/100', devicetype='fixed', user='100', description='Toddler Phone'",
         
         # 3. Insert into users table
-        "INSERT INTO users (extension, password, name, voicemail, ringtimer, noanswer, recording, outboundcid, sipname, cfringtimer, concurrency_limit) VALUES ('100', '', 'Toddler Phone', 'novm', 0, '', '', '', '', 0, 0) ON DUPLICATE KEY UPDATE name='Toddler Phone', voicemail='novm'",
+        "INSERT INTO users (extension, password, name, voicemail) VALUES ('100', '', 'Toddler Phone', 'novm') ON DUPLICATE KEY UPDATE name='Toddler Phone', voicemail='novm', password=''",
         
         # 4. Insert essential PJSIP/SIP parameters
         "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'secret', 'ToddlerToyPass123', 0)",
