@@ -345,15 +345,23 @@ def provision_phone():
         "user_host1": local_ip,
         "user_registrar1": local_ip,
         
-        # Hotline Configuration (dial 's' immediately on offhook)
+        # Hotline Configuration (dial '700' immediately on offhook)
         "hotline_active": "on",
         "hotline_active1": "on",
-        "hotline_number": "s",
-        "hotline_number1": "s",
-        "call_settings.hotline_number": "s",
+        "hotline_number": "700",
+        "hotline_number1": "700",
+        "call_settings.hotline_number": "700",
         "hotline_delay": "0",
         "hotline_delay1": "0",
         "call_settings.hotline_delay": "0",
+        
+        # Bypass confirmation popups
+        "confirm_fkey_call": "off",
+        "confirm_fkey_dial": "off",
+        "confirm_speeddial": "off",
+        "confirm_transfer": "off",
+        "transfer_on_hangup": "off",
+        "transfer_on_hangup_non_shared": "off",
         
         # Context Keys (Cancel and Confirm)
         "key_setup_cancel": "dtmf 713",
