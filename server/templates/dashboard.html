@@ -736,11 +736,16 @@
                     <span>🛠️</span>
                 </div>
                 <p style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">
-                    Once you have created PJSIP Extension 100 in the FreePBX GUI, click below to link it with our secure passwords, hotline keys, and configurations.
+                    Click below to automatically create PJSIP Extension 100 in the FreePBX database, secure its credentials, and route calls directly to the toddler game sandbox.
                 </p>
-                <button class="btn" id="btn-provision-ext" onclick="provisionExtension()">
-                    Register Extension 100
-                </button>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <button class="btn" id="btn-provision-ext" onclick="provisionExtension()" style="width: 100%;">
+                        Create Extension 100
+                    </button>
+                    <button class="btn btn-secondary" id="btn-clean-ext" onclick="cleanExtension()" style="width: 100%; font-size: 0.75rem; border-color: rgba(239, 68, 68, 0.4); color: #f87171;">
+                        🧹 Purge Orphan Traces
+                    </button>
+                </div>
             </div>
 
             <div class="glass-panel" id="panel-device-discovery" style="display: none;">
@@ -1083,7 +1088,7 @@
                 .then(res => res.json())
                 .then(data => {
                     btn.disabled = false;
-                    btn.innerText = 'Register Extension 100';
+                    btn.innerText = 'Create Extension 100';
                     if (data.success) {
                         showToast(data.message, 'success');
                         fetchStats(); // Update dashboard panels immediately
@@ -1093,10 +1098,34 @@
                 })
                 .catch(err => {
                     btn.disabled = false;
-                    btn.innerText = 'Register Extension 100';
+                    btn.innerText = 'Create Extension 100';
                     showToast('Failed to connect to backend api.', 'error');
                 });
         }
+
+        function cleanExtension() {
+            const btn = document.getElementById('btn-clean-ext');
+            btn.disabled = true;
+            btn.innerHTML = `<div class="spinner"></div> Purging traces...`;
+            
+            fetch('/api/clean-extension', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    btn.disabled = false;
+                    btn.innerText = '🧹 Purge Orphan Traces';
+                    if (data.success) {
+                        showToast(data.message, 'success');
+                    } else {
+                        showToast(data.error, 'error');
+                    }
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    btn.innerText = '🧹 Purge Orphan Traces';
+                    showToast('Failed to connect to backend api.', 'error');
+                });
+        }
+
 
         function scanNetwork() {
             const btn = document.getElementById('btn-scan');

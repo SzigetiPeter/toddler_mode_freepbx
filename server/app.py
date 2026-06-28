@@ -122,10 +122,10 @@ def get_stats():
     # Check if fwconsole binary exists
     fwconsole_exists = shutil.which("fwconsole") is not None
 
-    # Check if Extension 100 already exists in Asterisk PJSIP configuration
+    # Check if Extension 100 already exists in Asterisk configuration
     extension_provisioned = False
     if fwconsole_exists:
-        code, out, _ = run_db_query("SELECT id FROM pjsip WHERE id = '100' LIMIT 1")
+        code, out, _ = run_db_query("SELECT id FROM devices WHERE id = '100' LIMIT 1")
         if code == 0 and out and '100' in out:
             extension_provisioned = True
 
@@ -220,7 +220,7 @@ def run_db_query(query):
 
 @app.route('/api/provision-extension', methods=['POST'])
 def provision_extension():
-    """Generates Extension 100 on local FreePBX."""
+    """Generates and configures PJSIP Extension 100 on local FreePBX programmatically with zero GUI interaction."""
     fwconsole_path = shutil.which("fwconsole")
     if not fwconsole_path:
         return jsonify({
@@ -228,33 +228,73 @@ def provision_extension():
             "error": "fwconsole utility not found. Extension generation is only supported directly on a FreePBX server."
         }), 500
 
-    # Verify if Extension 100 is created in FreePBX first (must exist in devices table)
-    code_check, out_check, _ = run_db_query("SELECT id FROM devices WHERE id = '100' LIMIT 1")
-    if code_check != 0 or not out_check or '100' not in out_check:
-        return jsonify({
-            "success": False,
-            "error": "Extension 100 does not exist in FreePBX. Please open the FreePBX Web Admin, go to Applications -> Extensions, add a new PJSIP Extension with number '100', click 'Apply Config', then click this button again."
-        }), 400
-
-    # PJSIP Insert commands
-    q1 = "INSERT INTO pjsip (id, keyword, data) VALUES ('100', 'secret', 'ToddlerToyPass123') ON DUPLICATE KEY UPDATE data='ToddlerToyPass123'"
-    q2 = "INSERT INTO pjsip (id, keyword, data) VALUES ('100', 'max_contacts', '1') ON DUPLICATE KEY UPDATE data='1'"
-    
-    logger.info("Provisioning Extension 100 in FreePBX Database...")
-    
-    code1, out1, err1 = run_db_query(q1)
-    if code1 != 0:
-        return jsonify({"success": False, "error": f"Failed inserting secret: {err1 or out1}"}), 500
+    # SQL commands to programmatically create and configure PJSIP Extension 100
+    queries = [
+        # 1. Clean up any conflicting records
+        "DELETE FROM pjsip WHERE id = '100'",
+        "DELETE FROM findmefollow WHERE grpnum = '100'",
+        "DELETE FROM sip WHERE id = '100'",
         
-    code2, out2, err2 = run_db_query(q2)
-    if code2 != 0:
-        return jsonify({"success": False, "error": f"Failed inserting max_contacts: {err2 or out2}"}), 500
+        # 2. Insert into devices table
+        "INSERT INTO devices (id, tech, dial, devicetype, user, description) VALUES ('100', 'pjsip', 'PJSIP/100', 'fixed', '100', 'Toddler Phone') ON DUPLICATE KEY UPDATE tech='pjsip', dial='PJSIP/100', devicetype='fixed', user='100', description='Toddler Phone'",
+        
+        # 3. Insert into users table
+        "INSERT INTO users (extension, password, name, voicemail, ringtimer, noanswer, recording, outboundcid, sipname, cfringtimer, concurrency_limit) VALUES ('100', '', 'Toddler Phone', 'novm', 0, '', '', '', '', 0, 0) ON DUPLICATE KEY UPDATE name='Toddler Phone', voicemail='novm'",
+        
+        # 4. Insert essential PJSIP/SIP parameters
+        "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'secret', 'ToddlerToyPass123', 0)",
+        "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'max_contacts', '1', 0)",
+        "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'context', 'toddler-game', 0)",
+        "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'transport', '0.0.0.0-udp', 0)",
+        "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'dtmfmode', 'rfc4733', 0)",
+        "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'rtp_symmetric', 'yes', 0)",
+        "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'rewrite_contact', 'yes', 0)",
+        "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'force_rport', 'yes', 0)",
+        "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'allow', 'ulaw,alaw,g722', 0)"
+    ]
+    
+    logger.info("Provisioning Extension 100 in FreePBX Database programmatically...")
+    for q in queries:
+        code, out, err = run_db_query(q)
+        if code != 0:
+            return jsonify({
+                "success": False, 
+                "error": f"Database initialization failed on query '{q}': {err or out}"
+            }), 500
         
     code3, out3, err3 = run_cmd([fwconsole_path, "reload"])
     if code3 != 0:
         return jsonify({"success": False, "error": f"Failed reloading FreePBX: {err3 or out3}"}), 500
 
     return jsonify({"success": True, "message": "Extension 100 provisioned and dialplan reloaded successfully!"})
+
+@app.route('/api/clean-extension', methods=['POST'])
+def clean_extension():
+    """Wipes all database traces of Extension 100 to resolve duplicate key errors."""
+    queries = [
+        "DELETE FROM devices WHERE id='100'",
+        "DELETE FROM pjsip WHERE id='100'",
+        "DELETE FROM users WHERE extension='100'",
+        "DELETE FROM sip WHERE id='100'",
+        "DELETE FROM userman_users WHERE username='100' OR default_extension='100'",
+        "DELETE FROM voicemail WHERE mailbox='100'",
+        "DELETE FROM findmefollow WHERE grpnum='100'"
+    ]
+    
+    logger.info("Cleaning up all orphan database entries for Extension 100...")
+    for q in queries:
+        code, out, err = run_db_query(q)
+        if code != 0:
+            logger.warning(f"Failed executing cleanup query '{q}': {err or out}")
+            
+    # Reload FreePBX
+    fwconsole_path = shutil.which("fwconsole")
+    if fwconsole_path:
+        code_rl, out_rl, err_rl = run_cmd([fwconsole_path, "reload"])
+        if code_rl != 0:
+            return jsonify({"success": False, "error": f"Purged DB but failed reloading FreePBX: {err_rl or out_rl}"}), 500
+        
+    return jsonify({"success": True, "message": "Extension 100 database traces purged. You can now recreate it in the FreePBX GUI!"})
 
 @app.route('/api/provision-phone', methods=['POST'])
 def provision_phone():
