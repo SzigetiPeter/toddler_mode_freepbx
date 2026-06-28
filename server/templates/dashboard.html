@@ -747,10 +747,12 @@
                 <div class="panel-title">
                     <span>2. Snom Device Discovery</span>
                     <span>🔍</span>
-                </div>
-                <div class="control-group">
+                            <div class="control-group" style="display: flex; flex-direction: column; gap: 0.75rem;">
                     <button class="btn" id="btn-scan" onclick="scanNetwork()">
                         Scan LAN for Phones
+                    </button>
+                    <button class="btn btn-secondary" onclick="openProvisionModal('')" style="width: 100%;">
+                        Manually Enter Phone IP
                     </button>
                     <div style="display: flex; justify-content: flex-end;">
                         <label style="font-size: 0.75rem; color: var(--text-secondary); display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
@@ -759,7 +761,7 @@
                     </div>
                 </div>
 
-                <div class="device-list" id="device-list-container">
+                <div class="device-list" id="device-list-container" style="margin-top: 1rem;">
                     <div class="no-devices" id="no-devices-msg">No scans performed yet. Click Scan LAN to discover Snom 320s.</div>
                 </div>
             </div>
@@ -814,7 +816,7 @@
             <div class="upload-area" id="drop-zone" onclick="triggerFileInput()">
                 <div class="upload-icon">📤</div>
                 <div class="upload-text">Drag & drop sound file here or click to browse</div>
-                <div style="font-size: 0.7rem; color: var(--text-secondary);">Supports MP3, WAV, M4A, OGG</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Supports MP3, WAV, M4A, OGG</div>
             </div>
             
             <input type="file" id="file-uploader-input" class="hidden-file-input" accept="audio/*" onchange="handleFileSelect(event)">
@@ -840,7 +842,7 @@
             <div class="provision-dialog">
                 <div class="input-group">
                     <label>Target IP Address</label>
-                    <input type="text" class="input-field" id="prov-ip" readonly>
+                    <input type="text" class="input-field" id="prov-ip" placeholder="e.g. 192.168.1.50">
                 </div>
                 <div class="input-group">
                     <label>Snom Admin Username</label>

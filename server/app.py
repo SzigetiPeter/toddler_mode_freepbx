@@ -10,6 +10,10 @@ from flask import Flask, request, jsonify, render_template, send_from_directory
 import requests
 from requests.auth import HTTPBasicAuth, HTTPDigestAuth
 import psutil
+import urllib3
+
+# Disable SSL verification warnings for self-signed Snom certificates
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -51,27 +55,23 @@ def get_local_ip():
     return ip
 
 def check_ip_for_snom(ip, port=80, timeout=1.0):
-    """Checks if a given IP address hosts a Snom device by querying port 80."""
-    url = f"http://{ip}:{port}/"
-    try:
-        # Check HTTP header or content for Snom signatures
-        response = requests.get(url, timeout=timeout, allow_redirects=True)
-        server_header = response.headers.get('Server', '').lower()
-        www_auth = response.headers.get('WWW-Authenticate', '').lower()
-        body_text = response.text.lower()
-        
-        if 'snom' in server_header or 'snom' in www_auth or 'snom' in body_text:
-            return {"ip": ip, "detected": True, "details": f"Snom device detected (Status Code: {response.status_code})"}
-        
-    except requests.exceptions.HTTPError as e:
-        # Handle cases where 401 Unauthorized is returned but it contains Snom identifiers
-        headers = getattr(e.response, 'headers', {})
-        server_header = headers.get('Server', '').lower()
-        www_auth = headers.get('WWW-Authenticate', '').lower()
-        if 'snom' in server_header or 'snom' in www_auth:
-            return {"ip": ip, "detected": True, "details": "Snom device detected (Auth Required)"}
-    except requests.exceptions.RequestException:
-        pass
+    """Checks if a given IP address hosts a Snom device by querying HTTP and HTTPS."""
+    for proto in ["https", "http"]:
+        url = f"{proto}://{ip}/"
+        try:
+            # verify=False is critical to ignore self-signed certificate errors on newer firmware
+            response = requests.get(url, timeout=timeout, allow_redirects=True, verify=False)
+            server_header = response.headers.get('Server', '').lower()
+            www_auth = response.headers.get('WWW-Authenticate', '').lower()
+            body_text = response.text.lower() if response.text else ""
+            
+            if 'snom' in server_header or 'snom' in www_auth or 'snom' in body_text:
+                status_detail = f"Status Code: {response.status_code}"
+                if response.status_code == 401:
+                    status_detail = "Auth Required"
+                return {"ip": ip, "detected": True, "details": f"Snom device detected ({status_detail}) via {proto.upper()}"}
+        except requests.exceptions.RequestException:
+            pass
     return {"ip": ip, "detected": False, "details": ""}
 
 @app.route('/')
@@ -149,6 +149,52 @@ def scan_lan():
         "devices": sorted(detected_devices, key=lambda x: [int(y) for y in x["ip"].split('.')])
     })
 
+def get_freepbx_db_credentials():
+    """Parses /etc/freepbx.conf to extract database credentials."""
+    creds = {
+        "user": "freepbxuser",
+        "pass": "",
+        "host": "localhost",
+        "name": "asterisk"
+    }
+    config_path = "/etc/freepbx.conf"
+    if not os.path.exists(config_path):
+        return creds
+    try:
+        with open(config_path, "r") as f:
+            content = f.read()
+            
+        user_match = re.search(r"AMPDBUSER['\"]?\s*\]\s*=\s*['\"](.*?)['\"]", content)
+        pass_match = re.search(r"AMPDBPASS['\"]?\s*\]\s*=\s*['\"](.*?)['\"]", content)
+        host_match = re.search(r"AMPDBHOST['\"]?\s*\]\s*=\s*['\"](.*?)['\"]", content)
+        name_match = re.search(r"AMPDBNAME['\"]?\s*\]\s*=\s*['\"](.*?)['\"]", content)
+        
+        if user_match:
+            creds["user"] = user_match.group(1)
+        if pass_match:
+            creds["pass"] = pass_match.group(1)
+        if host_match:
+            creds["host"] = host_match.group(1)
+        if name_match:
+            creds["name"] = name_match.group(1)
+            
+    except Exception as e:
+        logger.error(f"Error parsing /etc/freepbx.conf: {e}")
+    return creds
+
+def run_db_query(query):
+    """Runs an SQL query against the local Asterisk MariaDB database."""
+    creds = get_freepbx_db_credentials()
+    mysql_path = shutil.which("mysql")
+    if not mysql_path:
+        return -1, "", "mysql binary not found in system PATH"
+        
+    args = [mysql_path, "-h", creds["host"], "-u", creds["user"]]
+    if creds["pass"]:
+        args.append(f"-p{creds['pass']}")
+    args.extend([creds["name"], "-e", query])
+    return run_cmd(args)
+
 @app.route('/api/provision-extension', methods=['POST'])
 def provision_extension():
     """Generates Extension 100 on local FreePBX."""
@@ -165,11 +211,11 @@ def provision_extension():
     
     logger.info("Provisioning Extension 100 in FreePBX Database...")
     
-    code1, out1, err1 = run_cmd([fwconsole_path, "pdo", q1])
+    code1, out1, err1 = run_db_query(q1)
     if code1 != 0:
         return jsonify({"success": False, "error": f"Failed inserting secret: {err1 or out1}"}), 500
         
-    code2, out2, err2 = run_cmd([fwconsole_path, "pdo", q2])
+    code2, out2, err2 = run_db_query(q2)
     if code2 != 0:
         return jsonify({"success": False, "error": f"Failed inserting max_contacts: {err2 or out2}"}), 500
         
@@ -242,31 +288,31 @@ def provision_phone():
 
     # 2. Push configurations to Snom
     # Try basic authentication, fallback to digest if basic fails or if needed
-    url = f"http://{phone_ip}/dummy.htm"
-    # Alternatively try settings.htm if dummy.htm doesn't respond
-    
     logger.info(f"Pushing settings configuration to Snom 320 at {phone_ip}")
     
     success = False
     error_msg = ""
     
-    for endpoint in ["dummy.htm", "settings.htm"]:
-        req_url = f"http://{phone_ip}/{endpoint}"
-        try:
-            # Try with Basic Auth
-            r = requests.get(req_url, params=params, auth=HTTPBasicAuth(username, password), timeout=5)
-            if r.status_code == 200:
-                success = True
-                break
-            elif r.status_code == 401:
-                # Try Digest Auth
-                r = requests.get(req_url, params=params, auth=HTTPDigestAuth(username, password), timeout=5)
+    for proto in ["https", "http"]:
+        if success:
+            break
+        for endpoint in ["dummy.htm", "settings.htm"]:
+            req_url = f"{proto}://{phone_ip}/{endpoint}"
+            try:
+                # Try with Basic Auth
+                r = requests.get(req_url, params=params, auth=HTTPBasicAuth(username, password), timeout=5, verify=False)
                 if r.status_code == 200:
                     success = True
                     break
-            error_msg = f"HTTP {r.status_code}"
-        except requests.exceptions.RequestException as e:
-            error_msg = str(e)
+                elif r.status_code == 401:
+                    # Try Digest Auth
+                    r = requests.get(req_url, params=params, auth=HTTPDigestAuth(username, password), timeout=5, verify=False)
+                    if r.status_code == 200:
+                        success = True
+                        break
+                error_msg = f"HTTP {r.status_code} via {proto.upper()}"
+            except requests.exceptions.RequestException as e:
+                error_msg = f"{str(e)} via {proto.upper()}"
             
     # Mock provisioning success if phone IP is a simulator/mock IP
     if "mock" in phone_ip or phone_ip.endswith(".199") or phone_ip.endswith(".200"):
@@ -278,17 +324,20 @@ def provision_phone():
 
     # 3. Trigger phone reboot
     reboot_success = False
-    for endpoint in ["dummy.htm", "advanced_update.htm"]:
-        reboot_url = f"http://{phone_ip}/{endpoint}"
-        reboot_params = {"reboot": "Reboot"}
-        try:
-            r = requests.get(reboot_url, params=reboot_params, auth=HTTPBasicAuth(username, password), timeout=5)
-            if r.status_code in [200, 401]:
-                # 401 might still initiate reboot depending on snom firmware setup
-                reboot_success = True
-                break
-        except requests.exceptions.RequestException:
-            pass
+    for proto in ["https", "http"]:
+        if reboot_success:
+            break
+        for endpoint in ["dummy.htm", "advanced_update.htm"]:
+            reboot_url = f"{proto}://{phone_ip}/{endpoint}"
+            reboot_params = {"reboot": "Reboot"}
+            try:
+                r = requests.get(reboot_url, params=reboot_params, auth=HTTPBasicAuth(username, password), timeout=5, verify=False)
+                if r.status_code in [200, 401]:
+                    # 401 might still initiate reboot depending on snom firmware setup
+                    reboot_success = True
+                    break
+            except requests.exceptions.RequestException:
+                pass
 
     if "mock" in phone_ip or phone_ip.endswith(".199") or phone_ip.endswith(".200"):
         reboot_success = True
