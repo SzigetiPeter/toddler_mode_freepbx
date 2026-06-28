@@ -42,27 +42,22 @@ The installation script will:
 * Append `#include asterisk_toddler.conf` to `/etc/asterisk/extensions_custom.conf` and reload Asterisk's dialplan.
 * Create a persistent systemd background daemon `toddler-mode.service` running on **Port 8080** as the `asterisk` user.
 
-### Step 2: Create Extension 100 in the FreePBX GUI
-FreePBX requires extension frames to be registered in the web interface to maintain database integrity:
-1. Open your **FreePBX Web Administration portal** in your browser.
-2. Go to **Applications** -> **Extensions**.
-3. Click **Add Extension** -> **Add New PJSIP Extension**.
-4. Set the **User Extension** to **`100`** (and choose a name, e.g., "Toddler Phone").
-5. Click **Submit**, then click the red **Apply Config** button at the top-right of the page.
-
-### Step 3: Register Extension on the Toddler Suite Dashboard
+### Step 2: Create Extension 100 on the Toddler Suite Dashboard
 1. Open the Toddler Mode Suite dashboard at `http://<YOUR_FREEPBX_IP>:8080`.
-2. The UI will dynamically detect if the extension is present. Click **Register Extension 100** under Step 1.
-3. This links the extension, secures PJSIP settings, reloads Asterisk configurations, and unlocks the Snom provisioning panels.
+2. Click the **Create Extension 100** button.
+3. The dashboard will automatically configure all necessary FreePBX database rows (devices, users, sip settings, and custom dialplan contexts), reload Asterisk, and unlock the phone configuration tools. *No manual FreePBX GUI interaction is required!*
 
-### Step 4: Scan and Provision the Snom Phone
+### Step 3: Scan and Provision the Snom Phone
 1. Under **2. Snom Device Discovery**, click **Scan LAN for Phones**. The scanner will search the local subnet and list your phone (e.g., at `192.168.1.12`).
 2. Alternatively, if network filters interfere, use the **3. Manual Provisioning** panel to input the phone's IP manually.
 3. Click **Provision**, enter the phone's current web administrator credentials (default is `admin` / `admin`), and click **Push Config & Reboot**.
 4. The server will push configuration parameters to register the line, set up speed-dials, activate the off-hook hotline, and restart the physical handset.
 
-### Step 5: Upload Sounds and Play!
+### Step 4: Upload Sounds and Play!
 Using the interactive grid on the dashboard, click any keycard to upload sound files (animal noises, music, voices, etc.). 
+
+💡 **Looking for sound files?** You can find free, downloadable animal sounds on the [Animal Sounds Online](https://animalsounds.online/animals/lists?page=2) library.
+
 Once mapped:
 * **Lift the receiver**: Snom dials the hotline instantly, opening the audio loop.
 * **Dialpad (0-9, \*, #)**: Plays mapped keypad sounds.

@@ -1074,15 +1074,22 @@
                 if (card) {
                     if (isMapped) {
                         card.classList.add('active');
+                        // Display full original filename as hover tooltip
+                        card.setAttribute('title', soundConfig[key].original_filename || soundConfig[key].filename);
                     } else {
                         card.classList.remove('active');
+                        card.removeAttribute('title');
                     }
                 }
                 
                 if (fileLabel) {
                     if (isMapped) {
-                        // Truncate filename nicely if it's long
-                        fileLabel.innerText = soundConfig[key].filename;
+                        let origName = soundConfig[key].original_filename || soundConfig[key].filename;
+                        // Truncate filename nicely if it is too long (over 18 characters)
+                        if (origName && origName.length > 18) {
+                            origName = origName.substring(0, 15) + '...';
+                        }
+                        fileLabel.innerText = origName;
                         fileLabel.style.color = '#34d399';
                     } else {
                         fileLabel.innerText = key.length > 2 ? 'Empty Slot' : '';
@@ -1213,7 +1220,7 @@
             
             // Render mapped sound file if existing
             if (soundConfig[key] && soundConfig[key].mapped) {
-                activeFileLabel.innerText = soundConfig[key].filename;
+                activeFileLabel.innerText = soundConfig[key].original_filename || soundConfig[key].filename;
                 viewState.style.display = 'flex';
             } else {
                 viewState.style.display = 'none';

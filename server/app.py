@@ -26,12 +26,36 @@ SOUNDS_DIR = "/var/lib/asterisk/sounds/en/toddler"
 # Fallback path for local testing or if target path is not writable
 LOCAL_SOUNDS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sounds")
 
+import json
+
 def get_active_sounds_dir():
     """Returns the writable sounds directory, falling back to local if system directory is unavailable."""
     if os.path.exists(SOUNDS_DIR) and os.access(SOUNDS_DIR, os.W_OK):
         return SOUNDS_DIR
     os.makedirs(LOCAL_SOUNDS_DIR, exist_ok=True)
     return LOCAL_SOUNDS_DIR
+
+def get_sounds_metadata():
+    """Reads the JSON mapping of original uploaded filenames from the active sounds directory."""
+    sounds_dir = get_active_sounds_dir()
+    metadata_path = os.path.join(sounds_dir, "metadata.json")
+    if os.path.exists(metadata_path):
+        try:
+            with open(metadata_path, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_sounds_metadata(metadata):
+    """Writes the JSON mapping of original uploaded filenames to the active sounds directory."""
+    sounds_dir = get_active_sounds_dir()
+    metadata_path = os.path.join(sounds_dir, "metadata.json")
+    try:
+        with open(metadata_path, "w") as f:
+            json.dump(metadata, f, indent=4)
+    except Exception as e:
+        logger.error(f"Failed to save sounds metadata: {e}")
 
 def run_cmd(args):
     """Run a system command and return output, exit code, and error if any."""
@@ -242,6 +266,7 @@ def provision_extension():
         "INSERT INTO users (extension, password, name, voicemail) VALUES ('100', '', 'Toddler Phone', 'novm') ON DUPLICATE KEY UPDATE name='Toddler Phone', voicemail='novm', password=''",
         
         # 4. Insert essential PJSIP/SIP parameters
+        "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'username', '100', 0)",
         "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'secret', 'ToddlerToyPass123', 0)",
         "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'max_contacts', '1', 0)",
         "INSERT INTO sip (id, keyword, data, flags) VALUES ('100', 'context', 'toddler-game', 0)",
@@ -423,6 +448,7 @@ def provision_phone():
 def list_sounds():
     """Returns the map of all physical phone key configurations and their file statuses."""
     sounds_dir = get_active_sounds_dir()
+    metadata = get_sounds_metadata()
     
     # Expected key names
     numeric_keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"]
@@ -435,9 +461,13 @@ def list_sounds():
         filename = f"{key}.wav"
         filepath = os.path.join(sounds_dir, filename)
         exists = os.path.exists(filepath)
+        
+        orig_filename = metadata.get(key) if exists else None
+        
         mapping[key] = {
             "mapped": exists,
             "filename": filename if exists else None,
+            "original_filename": orig_filename or (filename if exists else None),
             "size": os.path.getsize(filepath) if exists else 0
         }
         
@@ -522,10 +552,19 @@ def upload_sound():
         else:
             logger.warning(f"Asterisk dialplan reload returned error: {reload_err}")
             
+    # Save the original filename to metadata
+    try:
+        metadata = get_sounds_metadata()
+        metadata[key] = file.filename
+        save_sounds_metadata(metadata)
+    except Exception as e:
+        logger.error(f"Failed writing sound metadata: {e}")
+
     return jsonify({
         "success": True,
         "message": f"Sound for key {key} successfully updated!",
         "filename": output_filename,
+        "original_filename": file.filename,
         "asterisk_reloaded": asterisk_reloaded
     })
 
@@ -543,6 +582,15 @@ def delete_sound(key):
         try:
             os.remove(filepath)
             
+            # Remove from metadata
+            try:
+                metadata = get_sounds_metadata()
+                if key in metadata:
+                    del metadata[key]
+                    save_sounds_metadata(metadata)
+            except Exception as e:
+                logger.error(f"Failed deleting sound metadata: {e}")
+                
             # Reload Asterisk dialplan
             asterisk_path = shutil.which("asterisk")
             if asterisk_path:
