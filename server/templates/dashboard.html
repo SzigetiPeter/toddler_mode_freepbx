@@ -730,7 +730,7 @@
     <main>
         <!-- Left Column: Controls & LAN scan -->
         <aside style="display: flex; flex-direction: column; gap: 2rem;">
-            <div class="glass-panel">
+            <div class="glass-panel" id="panel-extension-setup">
                 <div class="panel-title">
                     <span>1. Extension Setup</span>
                     <span>🛠️</span>
@@ -743,7 +743,7 @@
                 </button>
             </div>
 
-            <div class="glass-panel">
+            <div class="glass-panel" id="panel-device-discovery" style="display: none;">
                 <div class="panel-title">
                     <span>2. Snom Device Discovery</span>
                     <span>🔍</span>
@@ -764,7 +764,7 @@
                 </div>
             </div>
 
-            <div class="glass-panel">
+            <div class="glass-panel" id="panel-manual-provisioning" style="display: none;">
                 <div class="panel-title">
                     <span>3. Manual Provisioning</span>
                     <span>⌨️</span>
@@ -967,6 +967,23 @@
                         astEl.innerText = 'Offline';
                         astEl.className = 'stat-value inactive';
                     }
+
+                    // Dynamically toggle panels based on extension status
+                    const extPanel = document.getElementById('panel-extension-setup');
+                    const discPanel = document.getElementById('panel-device-discovery');
+                    const manPanel = document.getElementById('panel-manual-provisioning');
+
+                    if (extPanel && discPanel && manPanel) {
+                        if (data.extension_provisioned) {
+                            extPanel.style.display = 'none';
+                            discPanel.style.display = 'block';
+                            manPanel.style.display = 'block';
+                        } else {
+                            extPanel.style.display = 'block';
+                            discPanel.style.display = 'none';
+                            manPanel.style.display = 'none';
+                        }
+                    }
                 })
                 .catch(() => {
                     console.error("Failed fetching stats");
@@ -1069,6 +1086,7 @@
                     btn.innerText = 'Generate extension 100';
                     if (data.success) {
                         showToast(data.message, 'success');
+                        fetchStats(); // Update dashboard panels immediately
                     } else {
                         showToast(data.error, 'error');
                     }

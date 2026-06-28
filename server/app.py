@@ -55,12 +55,28 @@ def get_local_ip():
     return ip
 
 def check_ip_for_snom(ip, port=80, timeout=1.0):
-    """Checks if a given IP address hosts a Snom device by querying HTTP and HTTPS."""
-    for proto in ["https", "http"]:
-        url = f"{proto}://{ip}/"
+    """Checks if a given IP address hosts a Snom device by querying HTTP, following redirects, or trying HTTPS as fallback."""
+    # Try HTTP first (standard Snom Web UIs listen on HTTP or redirect from it)
+    url = f"http://{ip}/"
+    try:
+        response = requests.get(url, timeout=timeout, allow_redirects=True, verify=False)
+        server_header = response.headers.get('Server', '').lower()
+        www_auth = response.headers.get('WWW-Authenticate', '').lower()
+        body_text = response.text.lower() if response.text else ""
+        
+        if 'snom' in server_header or 'snom' in www_auth or 'snom' in body_text:
+            status_detail = f"Status Code: {response.status_code}"
+            if response.status_code == 401:
+                status_detail = "Auth Required"
+            return {"ip": ip, "detected": True, "details": f"Snom device detected ({status_detail})"}
+    except (requests.exceptions.ConnectTimeout, requests.exceptions.ReadTimeout):
+        # Do not try HTTPS if HTTP timed out, it will just waste time
+        pass
+    except requests.exceptions.RequestException:
+        # Try HTTPS fallback if HTTP failed (e.g. port 80 closed but port 443 open)
         try:
-            # verify=False is critical to ignore self-signed certificate errors on newer firmware
-            response = requests.get(url, timeout=timeout, allow_redirects=True, verify=False)
+            url_https = f"https://{ip}/"
+            response = requests.get(url_https, timeout=timeout, allow_redirects=True, verify=False)
             server_header = response.headers.get('Server', '').lower()
             www_auth = response.headers.get('WWW-Authenticate', '').lower()
             body_text = response.text.lower() if response.text else ""
@@ -69,9 +85,10 @@ def check_ip_for_snom(ip, port=80, timeout=1.0):
                 status_detail = f"Status Code: {response.status_code}"
                 if response.status_code == 401:
                     status_detail = "Auth Required"
-                return {"ip": ip, "detected": True, "details": f"Snom device detected ({status_detail}) via {proto.upper()}"}
+                return {"ip": ip, "detected": True, "details": f"Snom device detected ({status_detail}) via HTTPS"}
         except requests.exceptions.RequestException:
             pass
+            
     return {"ip": ip, "detected": False, "details": ""}
 
 @app.route('/')
@@ -105,6 +122,13 @@ def get_stats():
     # Check if fwconsole binary exists
     fwconsole_exists = shutil.which("fwconsole") is not None
 
+    # Check if Extension 100 already exists in Asterisk PJSIP configuration
+    extension_provisioned = False
+    if fwconsole_exists:
+        code, out, _ = run_db_query("SELECT id FROM pjsip WHERE id = '100' LIMIT 1")
+        if code == 0 and out and '100' in out:
+            extension_provisioned = True
+
     return jsonify({
         "local_ip": local_ip,
         "cpu_percent": psutil.cpu_percent(interval=None),
@@ -113,7 +137,8 @@ def get_stats():
         "disk_free_gb": round(disk.free / (1024**3), 2),
         "asterisk_running": asterisk_running,
         "freepbx_running": freepbx_running or fwconsole_exists,
-        "sounds_directory": sounds_dir
+        "sounds_directory": sounds_dir,
+        "extension_provisioned": extension_provisioned
     })
 
 @app.route('/api/scan', methods=['POST'])
@@ -149,18 +174,49 @@ def scan_lan():
         "devices": sorted(detected_devices, key=lambda x: [int(y) for y in x["ip"].split('.')])
     })
 
-def run_db_query(query):
-    """Runs an SQL query against the local Asterisk MariaDB database by piping it to fwconsole mysql."""
-    fwconsole_path = shutil.which("fwconsole")
-    if not fwconsole_path:
-        return -1, "", "fwconsole utility not found"
-        
+def get_freepbx_db_credentials():
+    """Parses /etc/freepbx.conf to extract database credentials line-by-line."""
+    creds = {
+        "user": "freepbxuser",
+        "pass": "",
+        "host": "localhost",
+        "name": "asterisk"
+    }
+    config_path = "/etc/freepbx.conf"
+    if not os.path.exists(config_path):
+        return creds
     try:
-        # Pass the query via stdin to 'fwconsole mysql'
-        res = subprocess.run([fwconsole_path, "mysql"], input=query, capture_output=True, text=True, timeout=15)
-        return res.returncode, res.stdout.strip(), res.stderr.strip()
+        with open(config_path, "r") as f:
+            for line in f:
+                line = line.strip()
+                if "AMPDBUSER" in line:
+                    m = re.search(r"=\s*['\"](.*?)['\"]", line)
+                    if m: creds["user"] = m.group(1)
+                elif "AMPDBPASS" in line:
+                    m = re.search(r"=\s*['\"](.*?)['\"]", line)
+                    if m: creds["pass"] = m.group(1)
+                elif "AMPDBHOST" in line:
+                    m = re.search(r"=\s*['\"](.*?)['\"]", line)
+                    if m: creds["host"] = m.group(1)
+                elif "AMPDBNAME" in line:
+                    m = re.search(r"=\s*['\"](.*?)['\"]", line)
+                    if m: creds["name"] = m.group(1)
     except Exception as e:
-        return -1, "", str(e)
+        logger.error(f"Error parsing /etc/freepbx.conf: {e}")
+    return creds
+
+def run_db_query(query):
+    """Runs an SQL query against the local Asterisk MariaDB database."""
+    creds = get_freepbx_db_credentials()
+    mysql_path = shutil.which("mysql") or shutil.which("mariadb")
+    if not mysql_path:
+        return -1, "", "mysql/mariadb binary not found in system PATH"
+        
+    args = [mysql_path, "-h", creds["host"], "-u", creds["user"]]
+    if creds["pass"]:
+        args.append(f"-p{creds['pass']}")
+    args.extend([creds["name"], "-e", query])
+    return run_cmd(args)
 
 @app.route('/api/provision-extension', methods=['POST'])
 def provision_extension():
